@@ -1,0 +1,6 @@
+flipper
+claude-flipper
+*.exe
+*.test
+*.out
+dist/
