@@ -52,9 +52,16 @@ brew install thecoderbuddy/tap/claude-flipper
 
 That's it — no additional tools required.
 
-### Linux / Windows
+### Linux
+```bash
+curl -fsSL https://raw.githubusercontent.com/thecoderbuddy/claude-flipper/main/install.sh | bash
+```
 
-Coming soon. Track progress in [#1](https://github.com/thecoderbuddy/claude-flipper/issues/1).
+Supports x86_64 and arm64. Installs to `/usr/local/bin/`.
+
+### Windows
+
+Coming soon.
 
 ---
 
