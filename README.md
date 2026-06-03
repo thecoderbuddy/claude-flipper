@@ -45,12 +45,14 @@ That's five steps and a browser redirect to do something that should be instant.
 
 ## Installation
 
-### macOS (Homebrew)
+### macOS
 ```bash
 brew install thecoderbuddy/tap/claude-flipper
 ```
 
-### Build from source (all platforms)
+That's it — no Go installation required.
+
+### Linux / Windows
 
 **Prerequisites:** [Go 1.21+](https://go.dev/dl/)
 
@@ -60,7 +62,7 @@ cd claude-flipper
 go build -o flipper .
 ```
 
-**macOS / Linux** — move the binary to your PATH:
+**Linux** — move the binary to your PATH:
 ```bash
 mv flipper /usr/local/bin/
 ```
