@@ -72,27 +72,39 @@ Coming soon.
 
 ## Quick Start
 
-### 1. Log in and save your first account
+### Step 1 — Save your first account
 
-Make sure you're logged into Claude Code with your first account, then:
+Open your terminal and log into Claude Code with your first account:
+
+```bash
+claude
+```
+
+Complete the login in the browser. Once you're in, **exit Claude Code** (`/exit` or Ctrl+C). Then run:
 
 ```bash
 flipper add
 ```
 
-This captures your current session and saves it to slot 1.
+This captures the session and saves it as slot 1.
 
-### 2. Log in and save your second account
+### Step 2 — Save your second account
 
-Open Claude Code, log out, log in with your second account, exit. Then:
+Now log into Claude Code with your second account:
+
+```bash
+claude
+```
+
+When prompted, select login and complete the browser flow for your second account. Once logged in, **exit Claude Code** again. Then run:
 
 ```bash
 flipper add
 ```
 
-This saves your second session to slot 2.
+This saves the second session as slot 2.
 
-### 3. Check both accounts are saved
+### Step 3 — Confirm both accounts are saved
 
 ```bash
 flipper list
@@ -105,15 +117,15 @@ SLOT    ACT  EMAIL                     ORG
 2       *    work@company.com          Acme Corp
 ```
 
-### 4. Flip between them
+### Step 4 — Flip between them
 
 ```bash
-flipper swap                      # rotate to the next account
-flipper swap 1                    # jump to slot 1 by number
-flipper swap personal@gmail.com   # jump by email
+flipper swap                       # rotate to the next account
+flipper swap 1                     # jump to slot 1 by number
+flipper swap personal@gmail.com    # jump by email
 ```
 
-That's it. Open Claude Code and you're in the right account.
+Then open Claude Code — you'll be in the right account, no browser login needed.
 
 ---
 
