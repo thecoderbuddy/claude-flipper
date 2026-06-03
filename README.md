@@ -20,6 +20,12 @@
   <a href="#how-it-works">How It Works</a>
 </p>
 
+<p align="center">
+  <a href="https://buymeacoffee.com/sharvari">
+    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support%20this%20project-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee" />
+  </a>
+</p>
+
 ---
 
 ## The problem it solves
@@ -193,6 +199,14 @@ Everything stays on your machine:
 - Open source — you can verify exactly what the code does
 
 ---
+
+## Support
+
+If Claude Flipper saves you time, consider buying me a coffee:
+
+<a href="https://buymeacoffee.com/sharvari">
+  <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" />
+</a>
 
 ## Acknowledgements
 
