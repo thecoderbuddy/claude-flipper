@@ -136,6 +136,24 @@ func SwitchTo(slotOrEmail string) (int, string, error) {
 		return 0, "", fmt.Errorf("load target credentials (slot %d): %w", targetSlot, err)
 	}
 
+	// Step 2b: refresh the access token if it has expired.
+	// This handles the common case where the token expired naturally while the
+	// other account was active. Falls back to the stored credentials silently
+	// if the network is unavailable; returns an error if the refresh token
+	// itself has been revoked (e.g. the user ran /logout in Claude Code).
+	if refreshed, rerr := tryRefreshCredentials(targetCreds); rerr == nil {
+		if refreshed != targetCreds {
+			// Persist the refreshed token back to the backup so future swaps
+			// start with a fresh token too.
+			_ = store.WriteBackup(targetSlot, targetRec.Email, refreshed)
+		}
+		targetCreds = refreshed
+	} else {
+		// Non-fatal: proceed with stored credentials. Claude Code will show
+		// "Not logged in" if the refresh token is also revoked (e.g. /logout was used).
+		fmt.Fprintf(os.Stderr, "warning: could not refresh token for slot %d: %v\n", targetSlot, rerr)
+	}
+
 	// Step 3: load target config from backup.
 	targetCfg, err := readConfigBackup(targetSlot, targetRec.Email)
 	if err != nil {
