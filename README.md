@@ -57,6 +57,13 @@ brew install thecoderbuddy/tap/claude-flipper
 
 That's it — no additional tools required.
 
+**To upgrade:**
+```bash
+brew upgrade thecoderbuddy/tap/claude-flipper
+```
+
+> **Note:** Upgrading does not affect your saved accounts. Your slots, credentials, and config backups in `~/.claude-flipper/` are preserved across upgrades.
+
 ### Linux
 ```bash
 curl -fsSL https://raw.githubusercontent.com/thecoderbuddy/claude-flipper/main/install.sh | bash
@@ -175,6 +182,15 @@ If anything fails mid-swap, it rolls back automatically — you're never left in
 ├── credentials/            Credential backups per slot
 └── configs/                Config backups per slot
 ```
+
+## Privacy
+
+**Claude Flipper does not collect, transmit, or share any data.**
+
+Everything stays on your machine:
+- Credentials are stored in your macOS Keychain (macOS), a local file with `0600` permissions (Linux), or Windows Credential Manager (Windows)
+- No telemetry, no analytics, no network requests
+- Open source — you can verify exactly what the code does
 
 ---
 
