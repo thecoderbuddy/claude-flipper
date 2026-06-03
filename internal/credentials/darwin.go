@@ -54,8 +54,8 @@ func (d *darwinStore) ReadLive() (*models.ClaudeCredentials, error) {
 }
 
 // WriteLive writes credentials to all Claude Code Keychain entries.
-// Claude Code may use a hashed service name (e.g. "Claude Code-credentials-753cc65a")
-// in addition to the plain one, so we update all matching entries.
+// The plain entry is written first (it's the primary one Claude Code reads).
+// Hashed variants are updated best-effort — a failure there does not abort the swap.
 func (d *darwinStore) WriteLive(creds *models.ClaudeCredentials) error {
 	data, err := marshalCreds(creds)
 	if err != nil {
@@ -63,11 +63,9 @@ func (d *darwinStore) WriteLive(creds *models.ClaudeCredentials) error {
 	}
 	user := currentUser()
 
-	// Find all Claude Code credential service names in the Keychain.
 	services := keychainServices()
 
-	var lastErr error
-	for _, svc := range services {
+	for i, svc := range services {
 		cmd := exec.Command(
 			"security", "add-generic-password",
 			"-U",
@@ -76,13 +74,19 @@ func (d *darwinStore) WriteLive(creds *models.ClaudeCredentials) error {
 			"-w", string(data),
 		)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			lastErr = fmt.Errorf("keychain write (%s): %w — %s", svc, err, strings.TrimSpace(string(out)))
+			if i == 0 {
+				// Plain entry is required — fail fast.
+				return fmt.Errorf("keychain write (%s): %w — %s", svc, err, strings.TrimSpace(string(out)))
+			}
+			// Hashed variant — best-effort, skip on failure.
 		}
 	}
-	return lastErr
+	return nil
 }
 
 // keychainServices returns all Keychain service names matching "Claude Code-credentials*".
+// The plain entry ("Claude Code-credentials") is always first because that is the entry
+// Claude Code writes fresh tokens to; hashed variants are secondary.
 func keychainServices() []string {
 	out, err := exec.Command("security", "dump-keychain").Output()
 	if err != nil {
@@ -90,26 +94,46 @@ func keychainServices() []string {
 	}
 
 	seen := map[string]bool{}
-	var services []string
+	var hashed []string // hashed variants e.g. "Claude Code-credentials-753cc65a"
+
 	for _, line := range strings.Split(string(out), "\n") {
-		line = strings.TrimSpace(line)
-		if strings.Contains(line, "Claude Code-credentials") {
-			// Extract the service name from: 0x00000007 <blob>="Claude Code-credentials-abc123"
-			start := strings.Index(line, `"`)
-			end := strings.LastIndex(line, `"`)
-			if start >= 0 && end > start {
-				svc := line[start+1 : end]
-				if !seen[svc] {
-					seen[svc] = true
-					services = append(services, svc)
-				}
-			}
+		// Find the pattern ="Claude Code-credentials..." to extract the service name.
+		// We look for this pattern rather than taking between first/last quote because
+		// dump-keychain output can contain deeply nested attribute lines like:
+		//   "svce"<blob>="svce"<blob>="Claude Code-credentials-753cc65a"
+		// which would cause the naive first/last-quote extraction to include garbage.
+		idx := strings.Index(line, `="Claude Code-credentials`)
+		if idx < 0 {
+			continue
+		}
+		// after = `"Claude Code-credentials..."`
+		after := line[idx+1:]
+		if len(after) == 0 || after[0] != '"' {
+			continue
+		}
+		end := strings.Index(after[1:], `"`)
+		if end < 0 {
+			continue
+		}
+		svc := after[1 : end+1]
+		// Reject garbage: valid service names only contain safe characters.
+		if strings.ContainsAny(svc, `"<>=`) {
+			continue
+		}
+		if seen[svc] {
+			continue
+		}
+		seen[svc] = true
+		if svc == keychainServiceLive {
+			// plain entry — handled separately so it always goes first
+		} else {
+			hashed = append(hashed, svc)
 		}
 	}
 
-	if len(services) == 0 {
-		return []string{keychainServiceLive}
-	}
+	// Plain entry first (Claude Code's primary credential store), then hashed variants.
+	services := []string{keychainServiceLive}
+	services = append(services, hashed...)
 	return services
 }
 
