@@ -34,12 +34,17 @@ That's five steps and a browser redirect to do something that should be instant.
 
 ## Before and after
 
-| Before | After |
-|---|---|
-| `/logout` → browser → log back in every time | `flipper swap` — done |
-| Risk logging into the wrong account mid-session | Named slots — always know which account is active |
-| No way to see which account is active | `flipper status` shows you instantly |
-| Credentials scattered across browser sessions | One tool manages all accounts securely |
+**Without Claude Flipper:**
+```
+/logout → wait for browser → log in with other account → back to terminal
+```
+Five steps every time you switch. Easy to end up in the wrong account without noticing.
+
+**With Claude Flipper:**
+```
+flipper swap
+```
+One command. Instant. Always know which account is active.
 
 ---
 
