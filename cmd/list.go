@@ -17,7 +17,7 @@ var listCmd = &cobra.Command{
 		}
 
 		if len(seq.Accounts) == 0 {
-			fmt.Println("No accounts managed yet. Run 'cs add' while logged in to an account.")
+			fmt.Println("No accounts managed yet. Run 'flipper add' while logged in to an account.")
 			return nil
 		}
 

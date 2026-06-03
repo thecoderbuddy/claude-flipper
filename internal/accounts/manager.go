@@ -134,7 +134,7 @@ func ActiveAccount(seq *models.Sequence) (int, models.AccountRecord, bool) {
 // It wraps around when it reaches the end.
 func NextInSequence(seq *models.Sequence) (int, models.AccountRecord, error) {
 	if len(seq.Sequence) < 2 {
-		return 0, models.AccountRecord{}, fmt.Errorf("need at least 2 accounts to rotate; run 'cs add' first")
+		return 0, models.AccountRecord{}, fmt.Errorf("need at least 2 accounts to rotate; run 'flipper add' first")
 	}
 
 	cur := seq.ActiveSlot

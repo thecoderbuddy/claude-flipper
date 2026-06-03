@@ -20,7 +20,7 @@ Run this once per account while that account is logged in to Claude Code.`,
 			return err
 		}
 		fmt.Printf("Added account %q as slot %d.\n", email, slot)
-		fmt.Println("Run 'cs list' to see all managed accounts.")
+		fmt.Println("Run 'flipper list' to see all managed accounts.")
 		return nil
 	},
 }

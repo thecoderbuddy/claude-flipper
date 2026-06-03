@@ -20,8 +20,8 @@ var statusCmd = &cobra.Command{
 
 		slot, rec, ok := accounts.ActiveAccount(seq)
 		if !ok {
-			fmt.Println("No active account tracked by cs.")
-			fmt.Println("Run 'cs add' while logged in to register your current account.")
+			fmt.Println("No active account tracked by flipper.")
+			fmt.Println("Run 'flipper add' while logged in to register your current account.")
 		} else {
 			org := rec.OrganizationName
 			if org == "" {
@@ -45,9 +45,9 @@ var statusCmd = &cobra.Command{
 		} else {
 			match := ""
 			if ok && rec.Email == liveAcct.EmailAddress {
-				match = " (matches cs)"
+				match = " (matches flipper)"
 			} else if ok {
-				match = " (!!! MISMATCH with cs)"
+				match = " (!!! MISMATCH with flipper)"
 			}
 			fmt.Printf("Live Claude config : %s%s\n", liveAcct.EmailAddress, match)
 		}
