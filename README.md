@@ -50,29 +50,11 @@ That's five steps and a browser redirect to do something that should be instant.
 brew install thecoderbuddy/tap/claude-flipper
 ```
 
-That's it — no Go installation required.
+That's it — no additional tools required.
 
 ### Linux / Windows
 
-**Prerequisites:** [Go 1.21+](https://go.dev/dl/)
-
-```bash
-git clone https://github.com/thecoderbuddy/claude-flipper.git
-cd claude-flipper
-go build -o flipper .
-```
-
-**Linux** — move the binary to your PATH:
-```bash
-mv flipper /usr/local/bin/
-```
-
-**Windows** — move `flipper.exe` to a folder in your `PATH`, or run it directly.
-
-Verify the install:
-```bash
-flipper --help
-```
+Coming soon. Track progress in [#1](https://github.com/thecoderbuddy/claude-flipper/issues/1).
 
 ---
 
