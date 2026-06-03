@@ -15,8 +15,8 @@ import (
 const (
 	// wincredTargetLive is the Credential Manager target name that Claude Code uses.
 	wincredTargetLive = "Claude Code-credentials"
-	// wincredTargetPrefix is the prefix cs uses for its backups.
-	wincredTargetPrefix = "claude-switch"
+	// wincredTargetPrefix is the prefix flipper uses for its backups.
+	wincredTargetPrefix = "claude-flipper"
 )
 
 // New returns the Windows Credential Manager backed credential store.
@@ -49,7 +49,7 @@ func (w *windowsStore) WriteLive(creds *models.ClaudeCredentials) error {
 	return nil
 }
 
-// ReadBackup reads a cs backup from Windows Credential Manager, falling back to
+// ReadBackup reads a flipper backup from Windows Credential Manager, falling back to
 // the file backup if the Credential Manager entry is missing.
 func (w *windowsStore) ReadBackup(slot int, email string) (*models.ClaudeCredentials, error) {
 	target := backupTarget(slot, email)
