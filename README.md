@@ -194,6 +194,12 @@ Everything stays on your machine:
 
 ---
 
+## Acknowledgements
+
+Built for [Claude Code](https://claude.ai/code) by [Anthropic](https://anthropic.com).
+
+---
+
 ## Contributing
 
 Bug reports, improvements, and platform-specific fixes are welcome.
