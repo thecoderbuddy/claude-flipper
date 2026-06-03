@@ -130,7 +130,8 @@ That's it. Open Claude Code and you're in the right account.
 | `flipper swap <slot\|email>` | Jump to a specific account by slot number or email |
 | `flipper list` | Show all saved accounts — active slot marked with `*` |
 | `flipper status` | Show which account is currently active |
-| `flipper remove <slot\|email>` | Remove an account from the managed set |
+| `flipper remove <slot\|email>` | Remove an account by slot number or email |
+| `flipper reset` | Remove all saved accounts and wipe all flipper data |
 
 ---
 

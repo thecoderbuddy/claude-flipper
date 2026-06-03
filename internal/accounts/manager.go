@@ -95,7 +95,7 @@ func RemoveAccount(seq *models.Sequence, slotOrEmail string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if seq.ActiveSlot == slot {
+	if seq.ActiveSlot == slot && len(seq.Sequence) > 1 {
 		return 0, fmt.Errorf("cannot remove the currently active account; switch to another account first")
 	}
 	delete(seq.Accounts, key)
