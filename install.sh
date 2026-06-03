@@ -38,7 +38,7 @@ echo "Installing Claude Flipper ${VERSION} (linux/${ARCH})..."
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-ARCHIVE="${BINARY}_linux_${ARCH}.tar.gz"
+ARCHIVE="claude-flipper_linux_${ARCH}.tar.gz"
 URL="https://github.com/${REPO}/releases/download/${VERSION}/${ARCHIVE}"
 
 curl -fsSL "$URL" -o "${TMP_DIR}/${ARCHIVE}"
