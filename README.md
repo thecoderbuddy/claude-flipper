@@ -45,7 +45,7 @@ That's five steps and a browser redirect to do something that should be instant.
 
 ## Installation
 
-### macOS (Homebrew) — coming soon
+### macOS (Homebrew)
 ```bash
 brew install thecoderbuddy/tap/claude-flipper
 ```
