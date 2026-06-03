@@ -15,13 +15,21 @@ import (
 	"github.com/sharvari/claude-flipper/internal/paths"
 )
 
+// AddResult is returned by AddCurrent to indicate whether the account was new or refreshed.
+type AddResult struct {
+	Slot  int
+	Email string
+	IsNew bool
+}
+
 // AddCurrent reads the currently active Claude Code account (config + credentials) and
-// saves it as a new slot in sequence.json.
-func AddCurrent() (int, string, error) {
-	// Read live config.
-	oauthAcct, err := readLiveOAuthAccount()
+// saves it as a new slot in sequence.json. If the account is already registered, it
+// refreshes the stored credentials and config (useful after a token refresh).
+func AddCurrent() (AddResult, error) {
+	// Read live config (oauthAccount + userID).
+	cfg, err := readLiveAccountConfig()
 	if err != nil {
-		return 0, "", fmt.Errorf("read live config: %w", err)
+		return AddResult{}, fmt.Errorf("read live config: %w", err)
 	}
 
 	store := credentials.New()
@@ -29,29 +37,29 @@ func AddCurrent() (int, string, error) {
 	// Read live credentials.
 	creds, err := store.ReadLive()
 	if err != nil {
-		return 0, "", fmt.Errorf("read live credentials: %w", err)
+		return AddResult{}, fmt.Errorf("read live credentials: %w", err)
 	}
 
 	// Load sequence.
 	seq, err := accounts.Load()
 	if err != nil {
-		return 0, "", fmt.Errorf("load sequence: %w", err)
+		return AddResult{}, fmt.Errorf("load sequence: %w", err)
 	}
 
-	// Register account in sequence.
-	slot, err := accounts.AddAccount(seq, oauthAcct)
+	// Register or find existing account.
+	slot, isNew, err := accounts.AddAccount(seq, cfg.OAuthAccount)
 	if err != nil {
-		return 0, "", err
+		return AddResult{}, err
 	}
 
-	// Backup credentials.
-	if err := store.WriteBackup(slot, oauthAcct.EmailAddress, creds); err != nil {
-		return 0, "", fmt.Errorf("backup credentials: %w", err)
+	// Backup credentials (always refresh — tokens may have rotated).
+	if err := store.WriteBackup(slot, cfg.OAuthAccount.EmailAddress, creds); err != nil {
+		return AddResult{}, fmt.Errorf("backup credentials: %w", err)
 	}
 
-	// Backup config.
-	if err := writeConfigBackup(slot, oauthAcct); err != nil {
-		return 0, "", fmt.Errorf("backup config: %w", err)
+	// Backup config (oauthAccount + userID).
+	if err := writeConfigBackup(slot, cfg); err != nil {
+		return AddResult{}, fmt.Errorf("backup config: %w", err)
 	}
 
 	// If this is the very first account, mark it active.
@@ -60,10 +68,10 @@ func AddCurrent() (int, string, error) {
 	}
 
 	if err := accounts.Save(seq); err != nil {
-		return 0, "", fmt.Errorf("save sequence: %w", err)
+		return AddResult{}, fmt.Errorf("save sequence: %w", err)
 	}
 
-	return slot, oauthAcct.EmailAddress, nil
+	return AddResult{Slot: slot, Email: cfg.OAuthAccount.EmailAddress, IsNew: isNew}, nil
 }
 
 // SwitchTo switches the active Claude Code account to the one identified by slotOrEmail.
@@ -111,14 +119,14 @@ func SwitchTo(slotOrEmail string) (int, string, error) {
 		}
 	}
 
-	// Snapshot current live credentials (for rollback only; don't overwrite existing backup).
+	// Snapshot current live credentials and config (for rollback + backup update).
 	var liveCredsSnapshot *models.ClaudeCredentials
 	if currentSlot != 0 {
 		liveCredsSnapshot, _ = store.ReadLive()
 	}
-	var liveConfigSnapshot *models.OAuthAccount
+	var liveConfigSnapshot *models.AccountConfig
 	if currentSlot != 0 {
-		snap, _ := readLiveOAuthAccount()
+		snap, _ := readLiveAccountConfig()
 		liveConfigSnapshot = &snap
 	}
 
@@ -129,7 +137,7 @@ func SwitchTo(slotOrEmail string) (int, string, error) {
 	}
 
 	// Step 3: load target config from backup.
-	targetOAuth, err := readConfigBackup(targetSlot, targetRec.Email)
+	targetCfg, err := readConfigBackup(targetSlot, targetRec.Email)
 	if err != nil {
 		return 0, "", fmt.Errorf("load target config (slot %d): %w", targetSlot, err)
 	}
@@ -144,14 +152,14 @@ func SwitchTo(slotOrEmail string) (int, string, error) {
 		}
 	})
 
-	// Step 5: update ~/.claude/.config.json oauthAccount section.
-	if err := writeLiveOAuthAccount(targetOAuth); err != nil {
+	// Step 5: update ~/.claude.json oauthAccount and userID fields.
+	if err := writeLiveAccountConfig(targetCfg); err != nil {
 		runRollbacks(rollbacks)
 		return 0, "", fmt.Errorf("write live config: %w", err)
 	}
 	rollbacks = append(rollbacks, func() {
 		if liveConfigSnapshot != nil {
-			_ = writeLiveOAuthAccount(*liveConfigSnapshot)
+			_ = writeLiveAccountConfig(*liveConfigSnapshot)
 		}
 	})
 
@@ -164,9 +172,14 @@ func SwitchTo(slotOrEmail string) (int, string, error) {
 		return 0, "", fmt.Errorf("save sequence: %w", err)
 	}
 
-	// Update the backup for the previous account in case credentials changed since last add.
-	if currentSlot != 0 && currentEmail != "" && liveCredsSnapshot != nil {
-		_ = store.WriteBackup(currentSlot, currentEmail, liveCredsSnapshot)
+	// Update the backup for the previous account in case credentials/config changed since last add.
+	if currentSlot != 0 && currentEmail != "" {
+		if liveCredsSnapshot != nil {
+			_ = store.WriteBackup(currentSlot, currentEmail, liveCredsSnapshot)
+		}
+		if liveConfigSnapshot != nil {
+			_ = writeConfigBackup(currentSlot, *liveConfigSnapshot)
+		}
 	}
 
 	return targetSlot, targetRec.Email, nil
@@ -178,32 +191,42 @@ func ReadLiveAccount() (models.OAuthAccount, error) {
 	return readLiveOAuthAccount()
 }
 
-// readLiveOAuthAccount reads the oauthAccount field from ~/.claude/.config.json.
-func readLiveOAuthAccount() (models.OAuthAccount, error) {
+// readLiveAccountConfig reads the oauthAccount and userID fields from ~/.claude.json.
+func readLiveAccountConfig() (models.AccountConfig, error) {
 	data, err := os.ReadFile(paths.ClaudeConfigFile())
 	if err != nil {
-		return models.OAuthAccount{}, fmt.Errorf("read config file: %w", err)
+		return models.AccountConfig{}, fmt.Errorf("read config file: %w", err)
 	}
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return models.OAuthAccount{}, fmt.Errorf("parse config file: %w", err)
+		return models.AccountConfig{}, fmt.Errorf("parse config file: %w", err)
 	}
 	oauthRaw, ok := raw["oauthAccount"]
 	if !ok {
-		return models.OAuthAccount{}, fmt.Errorf("oauthAccount not found in config; is Claude Code logged in?")
+		return models.AccountConfig{}, fmt.Errorf("oauthAccount not found in config; is Claude Code logged in?")
 	}
 	var acct models.OAuthAccount
 	if err := json.Unmarshal(oauthRaw, &acct); err != nil {
-		return models.OAuthAccount{}, fmt.Errorf("parse oauthAccount: %w", err)
+		return models.AccountConfig{}, fmt.Errorf("parse oauthAccount: %w", err)
 	}
 	if acct.EmailAddress == "" {
-		return models.OAuthAccount{}, fmt.Errorf("oauthAccount.emailAddress is empty; is Claude Code logged in?")
+		return models.AccountConfig{}, fmt.Errorf("oauthAccount.emailAddress is empty; is Claude Code logged in?")
 	}
-	return acct, nil
+	var userID string
+	if uidRaw, ok := raw["userID"]; ok {
+		_ = json.Unmarshal(uidRaw, &userID)
+	}
+	return models.AccountConfig{OAuthAccount: acct, UserID: userID}, nil
 }
 
-// writeLiveOAuthAccount replaces only the oauthAccount field in ~/.claude/.config.json.
-func writeLiveOAuthAccount(acct models.OAuthAccount) error {
+// readLiveOAuthAccount is a thin wrapper used by callers that only need the OAuthAccount.
+func readLiveOAuthAccount() (models.OAuthAccount, error) {
+	cfg, err := readLiveAccountConfig()
+	return cfg.OAuthAccount, err
+}
+
+// writeLiveAccountConfig replaces oauthAccount and userID in ~/.claude.json.
+func writeLiveAccountConfig(cfg models.AccountConfig) error {
 	configFile := paths.ClaudeConfigFile()
 	data, err := os.ReadFile(configFile)
 	if err != nil {
@@ -215,11 +238,19 @@ func writeLiveOAuthAccount(acct models.OAuthAccount) error {
 		return fmt.Errorf("parse config file: %w", err)
 	}
 
-	oauthBytes, err := json.Marshal(acct)
+	oauthBytes, err := json.Marshal(cfg.OAuthAccount)
 	if err != nil {
 		return fmt.Errorf("marshal oauthAccount: %w", err)
 	}
 	raw["oauthAccount"] = oauthBytes
+
+	if cfg.UserID != "" {
+		uidBytes, err := json.Marshal(cfg.UserID)
+		if err != nil {
+			return fmt.Errorf("marshal userID: %w", err)
+		}
+		raw["userID"] = uidBytes
+	}
 
 	out, err := json.MarshalIndent(raw, "", "  ")
 	if err != nil {
@@ -237,13 +268,13 @@ func writeLiveOAuthAccount(acct models.OAuthAccount) error {
 	return nil
 }
 
-// writeConfigBackup saves just the oauthAccount section for a given slot/email.
-func writeConfigBackup(slot int, acct models.OAuthAccount) error {
-	p := paths.ConfigBackupFile(slot, acct.EmailAddress)
+// writeConfigBackup saves the oauthAccount and userID for a given slot.
+func writeConfigBackup(slot int, cfg models.AccountConfig) error {
+	p := paths.ConfigBackupFile(slot, cfg.OAuthAccount.EmailAddress)
 	if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
 		return fmt.Errorf("create config backup dir: %w", err)
 	}
-	data, err := json.MarshalIndent(acct, "", "  ")
+	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal config backup: %w", err)
 	}
@@ -258,18 +289,28 @@ func writeConfigBackup(slot int, acct models.OAuthAccount) error {
 	return nil
 }
 
-// readConfigBackup loads the oauthAccount backup for a given slot/email.
-func readConfigBackup(slot int, email string) (models.OAuthAccount, error) {
+// readConfigBackup loads the AccountConfig backup for a given slot/email.
+// It handles old backups that stored only OAuthAccount JSON (no userID field).
+func readConfigBackup(slot int, email string) (models.AccountConfig, error) {
 	p := paths.ConfigBackupFile(slot, email)
 	data, err := os.ReadFile(p)
 	if err != nil {
-		return models.OAuthAccount{}, fmt.Errorf("read config backup (slot %d): %w", slot, err)
+		return models.AccountConfig{}, fmt.Errorf("read config backup (slot %d): %w", slot, err)
 	}
-	var acct models.OAuthAccount
-	if err := json.Unmarshal(data, &acct); err != nil {
-		return models.OAuthAccount{}, fmt.Errorf("parse config backup: %w", err)
+	// Try new format first (AccountConfig with oauthAccount + userID).
+	var cfg models.AccountConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return models.AccountConfig{}, fmt.Errorf("parse config backup: %w", err)
 	}
-	return acct, nil
+	// If oauthAccount is empty, the file was saved in old format (bare OAuthAccount).
+	if cfg.OAuthAccount.EmailAddress == "" {
+		var acct models.OAuthAccount
+		if err := json.Unmarshal(data, &acct); err != nil {
+			return models.AccountConfig{}, fmt.Errorf("parse config backup (legacy): %w", err)
+		}
+		cfg = models.AccountConfig{OAuthAccount: acct}
+	}
+	return cfg, nil
 }
 
 // runRollbacks executes rollback functions in reverse order (LIFO).

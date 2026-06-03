@@ -66,13 +66,14 @@ func NextSlot(seq *models.Sequence) int {
 	}
 }
 
-// AddAccount adds a new account record to the sequence and returns its slot number.
-// Returns an error if the email is already registered.
-func AddAccount(seq *models.Sequence, acct models.OAuthAccount) (int, error) {
-	// Check for duplicate email.
-	for _, rec := range seq.Accounts {
+// AddAccount adds a new account record to the sequence and returns (slot, isNew, error).
+// If the email is already registered, it returns the existing slot and isNew=false.
+func AddAccount(seq *models.Sequence, acct models.OAuthAccount) (int, bool, error) {
+	// Check for existing email — return existing slot so callers can refresh backups.
+	for k, rec := range seq.Accounts {
 		if strings.EqualFold(rec.Email, acct.EmailAddress) {
-			return 0, fmt.Errorf("account %q is already registered", acct.EmailAddress)
+			n, _ := strconv.Atoi(k)
+			return n, false, nil
 		}
 	}
 
@@ -86,7 +87,7 @@ func AddAccount(seq *models.Sequence, acct models.OAuthAccount) (int, error) {
 		AddedAt:          time.Now().UTC(),
 	}
 	seq.Sequence = append(seq.Sequence, slot)
-	return slot, nil
+	return slot, true, nil
 }
 
 // RemoveAccount removes the account identified by slotOrEmail and returns the slot number removed.

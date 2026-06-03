@@ -15,11 +15,15 @@ platform credential store, then saves it as a new managed account slot.
 
 Run this once per account while that account is logged in to Claude Code.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		slot, email, err := switcher.AddCurrent()
+		result, err := switcher.AddCurrent()
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Added account %q as slot %d.\n", email, slot)
+		if result.IsNew {
+			fmt.Printf("Saved account %q as slot %d.\n", result.Email, result.Slot)
+		} else {
+			fmt.Printf("Refreshed slot %d for %q.\n", result.Slot, result.Email)
+		}
 		fmt.Println("Run 'flipper list' to see all managed accounts.")
 		return nil
 	},

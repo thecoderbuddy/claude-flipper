@@ -15,9 +15,9 @@ var swapCmd = &cobra.Command{
 is reached it wraps back to the first.
 
 Optionally pass a slot number or email to jump to a specific account:
-  cwitch swap
-  cwitch swap 2
-  cwitch swap work@company.com`,
+  flipper swap
+  flipper swap 2
+  flipper swap work@company.com`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		target := ""

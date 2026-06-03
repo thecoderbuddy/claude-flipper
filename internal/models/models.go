@@ -2,12 +2,19 @@ package models
 
 import "time"
 
-// OAuthAccount mirrors the oauthAccount object inside ~/.claude/.config.json.
+// OAuthAccount mirrors the oauthAccount object inside ~/.claude.json.
 type OAuthAccount struct {
 	EmailAddress     string `json:"emailAddress"`
 	OrganizationUUID string `json:"organizationUuid"`
 	OrganizationName string `json:"organizationName"`
 	UUID             string `json:"uuid"`
+}
+
+// AccountConfig is what flipper backs up per slot: the oauthAccount section
+// plus the userID field, both of which are account-specific in ~/.claude.json.
+type AccountConfig struct {
+	OAuthAccount OAuthAccount `json:"oauthAccount"`
+	UserID       string       `json:"userID,omitempty"`
 }
 
 // ClaudeCredentials mirrors the content of ~/.claude/.credentials.json (Linux/Windows)

@@ -29,37 +29,88 @@ func New() Store {
 type darwinStore struct{}
 
 // ReadLive reads the Claude Code Keychain entry and returns the parsed credentials.
+// Tries all matching service names and returns the first one that parses successfully.
 func (d *darwinStore) ReadLive() (*models.ClaudeCredentials, error) {
-	out, err := exec.Command(
-		"security", "find-generic-password",
-		"-s", keychainServiceLive,
-		"-w",
-	).Output()
-	if err != nil {
-		return nil, fmt.Errorf("keychain read (live): %w", err)
+	services := keychainServices()
+	var lastErr error
+	for _, svc := range services {
+		out, err := exec.Command(
+			"security", "find-generic-password",
+			"-s", svc,
+			"-w",
+		).Output()
+		if err != nil {
+			lastErr = fmt.Errorf("keychain read (%s): %w", svc, err)
+			continue
+		}
+		creds, err := unmarshalCreds(decodeKeychainOutput(string(out)))
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		return creds, nil
 	}
-	return unmarshalCreds(decodeKeychainOutput(string(out)))
+	return nil, fmt.Errorf("keychain read (live): %w", lastErr)
 }
 
-// WriteLive writes credentials to the Claude Code Keychain entry.
-// Uses -X (hex input) to store raw bytes, matching how Claude Code writes credentials.
+// WriteLive writes credentials to all Claude Code Keychain entries.
+// Claude Code may use a hashed service name (e.g. "Claude Code-credentials-753cc65a")
+// in addition to the plain one, so we update all matching entries.
 func (d *darwinStore) WriteLive(creds *models.ClaudeCredentials) error {
 	data, err := marshalCreds(creds)
 	if err != nil {
 		return err
 	}
 	user := currentUser()
-	cmd := exec.Command(
-		"security", "add-generic-password",
-		"-U",
-		"-s", keychainServiceLive,
-		"-a", user,
-		"-X", hex.EncodeToString(data),
-	)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("keychain write (live): %w — %s", err, strings.TrimSpace(string(out)))
+
+	// Find all Claude Code credential service names in the Keychain.
+	services := keychainServices()
+
+	var lastErr error
+	for _, svc := range services {
+		cmd := exec.Command(
+			"security", "add-generic-password",
+			"-U",
+			"-s", svc,
+			"-a", user,
+			"-w", string(data),
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			lastErr = fmt.Errorf("keychain write (%s): %w — %s", svc, err, strings.TrimSpace(string(out)))
+		}
 	}
-	return nil
+	return lastErr
+}
+
+// keychainServices returns all Keychain service names matching "Claude Code-credentials*".
+func keychainServices() []string {
+	out, err := exec.Command("security", "dump-keychain").Output()
+	if err != nil {
+		return []string{keychainServiceLive}
+	}
+
+	seen := map[string]bool{}
+	var services []string
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.Contains(line, "Claude Code-credentials") {
+			// Extract the service name from: 0x00000007 <blob>="Claude Code-credentials-abc123"
+			start := strings.Index(line, `"`)
+			end := strings.LastIndex(line, `"`)
+			if start >= 0 && end > start {
+				svc := line[start+1 : end]
+				if !seen[svc] {
+					seen[svc] = true
+					services = append(services, svc)
+				}
+			}
+		}
+	}
+
+	if len(services) == 0 {
+		return []string{keychainServiceLive}
+	}
+	return services
 }
 
 // ReadBackup reads a flipper backup from the Keychain.
