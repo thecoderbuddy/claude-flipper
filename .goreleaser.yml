@@ -1,0 +1,45 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    binary: flipper
+    ldflags:
+      - -s -w
+
+archives:
+  - formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: "checksums.txt"
+
+brews:
+  - name: claude-flipper
+    homepage: https://github.com/thecoderbuddy/claude-flipper
+    description: Flip between multiple Claude Code accounts without logging out and back in.
+    license: MIT
+    repository:
+      owner: thecoderbuddy
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    install: |
+      bin.install "flipper"
+    test: |
+      system "#{bin}/flipper", "--help"
