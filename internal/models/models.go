@@ -32,7 +32,7 @@ type AccountRecord struct {
 	AddedAt          time.Time `json:"addedAt"`
 }
 
-// Sequence is the top-level structure of ~/.claude-switch/sequence.json.
+// Sequence is the top-level structure of ~/.claude-flipper/sequence.json.
 type Sequence struct {
 	ActiveSlot int                      `json:"activeSlot"`
 	Accounts   map[string]AccountRecord `json:"accounts"` // key = slot number as string

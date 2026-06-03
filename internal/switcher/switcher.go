@@ -173,7 +173,7 @@ func SwitchTo(slotOrEmail string) (int, string, error) {
 }
 
 // ReadLiveAccount is the exported form — used by the status command to show what
-// Claude Code currently has active, independent of cs tracking.
+// Claude Code currently has active, independent of flipper tracking.
 func ReadLiveAccount() (models.OAuthAccount, error) {
 	return readLiveOAuthAccount()
 }

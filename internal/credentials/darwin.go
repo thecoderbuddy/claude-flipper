@@ -3,6 +3,7 @@
 package credentials
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,8 +17,8 @@ import (
 const (
 	// keychainServiceLive is the service name Claude Code uses for its own credentials.
 	keychainServiceLive = "Claude Code-credentials"
-	// keychainServicePrefix is the prefix cs uses for its backups.
-	keychainServicePrefix = "claude-switch"
+	// keychainServicePrefix is the prefix flipper uses for its backups.
+	keychainServicePrefix = "claude-flipper"
 )
 
 // New returns the macOS Keychain-backed credential store.
@@ -37,7 +38,7 @@ func (d *darwinStore) ReadLive() (*models.ClaudeCredentials, error) {
 	if err != nil {
 		return nil, fmt.Errorf("keychain read (live): %w", err)
 	}
-	return unmarshalCreds([]byte(strings.TrimSpace(string(out))))
+	return unmarshalCreds(decodeKeychainOutput(string(out)))
 }
 
 // WriteLive writes credentials to the Claude Code Keychain entry.
@@ -60,7 +61,7 @@ func (d *darwinStore) WriteLive(creds *models.ClaudeCredentials) error {
 	return nil
 }
 
-// ReadBackup reads a cs backup from the Keychain.
+// ReadBackup reads a flipper backup from the Keychain.
 func (d *darwinStore) ReadBackup(slot int, email string) (*models.ClaudeCredentials, error) {
 	svc := backupService(slot, email)
 	out, err := exec.Command(
@@ -71,7 +72,7 @@ func (d *darwinStore) ReadBackup(slot int, email string) (*models.ClaudeCredenti
 	if err != nil {
 		return nil, fmt.Errorf("keychain read (backup %s): %w", svc, err)
 	}
-	return unmarshalCreds([]byte(strings.TrimSpace(string(out))))
+	return unmarshalCreds(decodeKeychainOutput(string(out)))
 }
 
 // WriteBackup saves credentials to the Keychain under a cs-specific service name.
@@ -101,14 +102,14 @@ func (d *darwinStore) WriteBackup(slot int, email string, creds *models.ClaudeCr
 	return nil
 }
 
-// DeleteBackup removes the cs Keychain backup for a given slot/email (best-effort).
+// DeleteBackup removes the flipper Keychain backup for a given slot/email (best-effort).
 func (d *darwinStore) DeleteBackup(slot int, email string) {
 	svc := backupService(slot, email)
 	_ = exec.Command("security", "delete-generic-password", "-s", svc).Run()
 	_ = os.Remove(paths.CredentialsBackupFile(slot, email))
 }
 
-// backupService builds the Keychain service name for a cs backup entry.
+// backupService builds the Keychain service name for a flipper backup entry.
 func backupService(slot int, email string) string {
 	return fmt.Sprintf("%s-%d-%s", keychainServicePrefix, slot, email)
 }
@@ -119,4 +120,15 @@ func currentUser() string {
 		return u
 	}
 	return "claude"
+}
+
+// decodeKeychainOutput handles the macOS security command returning hex-encoded
+// data when the stored value contains control characters (e.g. JSON newlines).
+func decodeKeychainOutput(raw string) []byte {
+	trimmed := strings.TrimSpace(raw)
+	decoded, err := hex.DecodeString(trimmed)
+	if err == nil {
+		return decoded
+	}
+	return []byte(trimmed)
 }

@@ -25,17 +25,17 @@ func ClaudeCredentialsFile() string {
 	return filepath.Join(ClaudeConfigDir(), ".credentials.json")
 }
 
-// DataDir returns the claude-switch data directory.
+// DataDir returns the claude-flipper data directory.
 func DataDir() string {
 	home, _ := os.UserHomeDir()
 	switch runtime.GOOS {
 	case "linux":
 		if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
-			return filepath.Join(xdg, "claude-switch")
+			return filepath.Join(xdg, "claude-flipper")
 		}
-		return filepath.Join(home, ".local", "share", "claude-switch")
+		return filepath.Join(home, ".local", "share", "claude-flipper")
 	default:
-		return filepath.Join(home, ".claude-switch")
+		return filepath.Join(home, ".claude-flipper")
 	}
 }
 

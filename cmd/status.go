@@ -12,7 +12,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show the currently active Claude Code account",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Show what cs thinks is active.
+		// Show what flipper thinks is active.
 		seq, err := accounts.Load()
 		if err != nil {
 			return err
