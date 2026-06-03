@@ -1,4 +1,4 @@
-# claude-flipper
+# Claude Flipper
 
 > Flip between multiple Claude Code accounts without logging out and back in — every time.
 
@@ -28,7 +28,7 @@ Claude Code only supports one account at a time. If you have a personal subscrip
 
 That's five steps and a browser redirect to do something that should be instant.
 
-**claude-flipper** saves your accounts once and flips between them with a single command.
+**Claude Flipper** saves your accounts once and flips between them with a single command.
 
 ---
 
@@ -103,17 +103,17 @@ flipper list
 ```
 
 ```
-Slot  Email                          Organization
-─────────────────────────────────────────────────
-  1   personal@gmail.com             Personal
-* 2   work@company.com               Acme Corp      ← active
+SLOT    ACT  EMAIL                     ORG
+----    ---  -----                     ---
+1            personal@gmail.com        Personal
+2       *    work@company.com          Acme Corp
 ```
 
 ### 4. Flip between them
 
 ```bash
-flipper swap          # rotate to the next account
-flipper swap 1        # jump to slot 1 by number
+flipper swap                      # rotate to the next account
+flipper swap 1                    # jump to slot 1 by number
 flipper swap personal@gmail.com   # jump by email
 ```
 
@@ -128,10 +128,10 @@ That's it. Open Claude Code and you're in the right account.
 | `flipper add` | Save the currently logged-in Claude Code account as a new slot |
 | `flipper swap` | Rotate to the next account in the sequence |
 | `flipper swap <slot\|email>` | Jump to a specific account by slot number or email |
-| `flipper list` | Show all saved accounts — active slot marked with `*` |
+| `flipper list` | Show all saved accounts — active slot marked in the ACT column |
 | `flipper status` | Show which account is currently active |
 | `flipper remove <slot\|email>` | Remove an account by slot number or email |
-| `flipper reset` | Remove all saved accounts and wipe all flipper data |
+| `flipper reset` | Remove all saved accounts and wipe all Claude Flipper data |
 
 ---
 
@@ -160,11 +160,11 @@ If anything fails mid-swap, it rolls back automatically — you're never left in
 ## Data location
 
 ```
-~/.claude-flipper/          macOS and Windows
-~/.local/share/claude-flipper/   Linux (XDG)
+~/.claude-flipper/                   macOS and Windows
+~/.local/share/claude-flipper/       Linux (XDG)
 
 ├── sequence.json           Master account list and active slot
-├── credentials/            Encrypted credential backups per slot
+├── credentials/            Credential backups per slot
 └── configs/                Config backups per slot
 ```
 
