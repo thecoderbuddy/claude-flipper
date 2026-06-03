@@ -42,6 +42,7 @@ func (d *darwinStore) ReadLive() (*models.ClaudeCredentials, error) {
 }
 
 // WriteLive writes credentials to the Claude Code Keychain entry.
+// Uses -X (hex input) to store raw bytes, matching how Claude Code writes credentials.
 func (d *darwinStore) WriteLive(creds *models.ClaudeCredentials) error {
 	data, err := marshalCreds(creds)
 	if err != nil {
@@ -53,7 +54,7 @@ func (d *darwinStore) WriteLive(creds *models.ClaudeCredentials) error {
 		"-U",
 		"-s", keychainServiceLive,
 		"-a", user,
-		"-w", string(data),
+		"-X", hex.EncodeToString(data),
 	)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("keychain write (live): %w — %s", err, strings.TrimSpace(string(out)))
@@ -88,7 +89,7 @@ func (d *darwinStore) WriteBackup(slot int, email string, creds *models.ClaudeCr
 		"-U",
 		"-s", svc,
 		"-a", user,
-		"-w", string(data),
+		"-X", hex.EncodeToString(data),
 	)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("keychain write (backup %s): %w — %s", svc, err, strings.TrimSpace(string(out)))
