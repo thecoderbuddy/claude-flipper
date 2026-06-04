@@ -4,3 +4,4 @@ claude-flipper
 *.test
 *.out
 dist/
+release.md
