@@ -32,4 +32,5 @@ func init() {
 	rootCmd.AddCommand(resetCmd)
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(tokenCmd)
+	rootCmd.AddCommand(setupCmd)
 }
