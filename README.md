@@ -92,13 +92,13 @@ Coming soon.
 
 ### Step 1 — Save your first account
 
-Open your terminal and log into Claude Code with your first account:
+Open Claude Code and make sure you're logged in with your first account:
 
 ```bash
 claude
 ```
 
-Complete the login in the browser. Once you're in, **exit Claude Code** (`/exit` or Ctrl+C). Then run:
+Once you're in, **exit Claude Code** (`/exit`). Then run:
 
 ```bash
 flipper add
@@ -108,19 +108,21 @@ This captures the session and saves it as slot 1.
 
 ### Step 2 — Save your second account
 
-Open Claude Code and log out of the first account:
+Open Claude Code again and switch to your second account using `/login`:
 
 ```bash
 claude
 ```
 
-Inside Claude Code, run `/logout`. Then log back in with your second account and complete the browser flow. Once logged in, **exit Claude Code**. Then run:
+Inside Claude Code, run `/login`. This opens the browser — sign in with your second account and complete the flow. Once logged in, **exit Claude Code** (`/exit`). Then run:
 
 ```bash
 flipper add
 ```
 
 This saves the second session as slot 2.
+
+> **Why `/login` instead of `/logout`?** After `/logout`, Claude Code auto-picks the last used account. Using `/login` lets you choose a different account directly without that issue.
 
 ### Step 3 — Confirm both accounts are saved
 
@@ -143,7 +145,7 @@ flipper swap 1 && claude      # jump to slot 1 by number
 flipper swap work@company.com # jump by email
 ```
 
-> **Note:** Always quit Claude Code (⌘Q or `/exit`) before swapping. The desktop app overwrites credentials while running.
+> **Note:** Always exit Claude Code (`/exit`) before swapping. The desktop app overwrites credentials while running.
 
 ---
 
