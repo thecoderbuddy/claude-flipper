@@ -82,6 +82,8 @@ source ~/.bashrc
 
 Supports x86_64 and arm64. Installs to `/usr/local/bin/`.
 
+> **Note:** On Linux, Claude Code stores credentials in `~/.claude/.credentials.json` — no Keychain involved. `flipper setup` still adds the shell wrapper as a best practice for consistent behaviour across platforms.
+
 ### Windows
 
 Coming soon.
@@ -108,13 +110,19 @@ This captures the session and saves it as slot 1.
 
 ### Step 2 — Save your second account
 
-Open Claude Code again and switch to your second account using `/login`:
+Open Claude Code, log out, then log in with your second account:
 
 ```bash
 claude
 ```
 
-Inside Claude Code, run `/login`. This opens the browser — sign in with your second account and complete the flow. Once logged in, **exit Claude Code** (`/exit`). Then run:
+Inside Claude Code:
+1. Run `/logout` — this logs out your current account
+2. Run `claude` again to reopen
+3. Run `/login` — this opens the browser, sign in with your second account and complete the flow
+4. Run `/exit` once logged in
+
+Then run:
 
 ```bash
 flipper add
@@ -122,7 +130,7 @@ flipper add
 
 This saves the second session as slot 2.
 
-> **Why `/login` instead of `/logout`?** After `/logout`, Claude Code auto-picks the last used account. Using `/login` lets you choose a different account directly without that issue.
+> **Why `/login` after `/logout`?** After `/logout`, Claude Code auto-picks the last used account on next open. Running `/login` forces a fresh login prompt so you can choose a different account.
 
 ### Step 3 — Confirm both accounts are saved
 
