@@ -2,11 +2,9 @@
 package switcher
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 
@@ -74,15 +72,6 @@ func AddCurrent() (AddResult, error) {
 	}
 
 	return AddResult{Slot: slot, Email: cfg.OAuthAccount.EmailAddress, IsNew: isNew}, nil
-}
-
-// claudeAppRunning returns true if the Claude.app desktop process is currently running.
-func claudeAppRunning() bool {
-	out, err := exec.Command("pgrep", "-f", "Claude.app/Contents/MacOS/Claude").Output()
-	if err != nil {
-		return false
-	}
-	return len(bytes.TrimSpace(out)) > 0
 }
 
 // SwitchTo switches the active Claude Code account to the one identified by slotOrEmail.
