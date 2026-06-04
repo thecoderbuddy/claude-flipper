@@ -66,15 +66,14 @@ func resolveShell(shell string) (rcFile, wrapper string, err error) {
 	switch shell {
 	case "zsh":
 		return filepath.Join(home, ".zshrc"), zshBashWrapper, nil
-	case "bash":
+	case "fish":
+		return filepath.Join(home, ".config", "fish", "config.fish"), fishWrapper, nil
+	default:
+		// bash, sh, or unrecognised/unset — fall back to bash rc file.
 		rc := filepath.Join(home, ".bashrc")
 		if _, e := os.Stat(rc); os.IsNotExist(e) {
 			rc = filepath.Join(home, ".bash_profile")
 		}
 		return rc, zshBashWrapper, nil
-	case "fish":
-		return filepath.Join(home, ".config", "fish", "config.fish"), fishWrapper, nil
-	default:
-		return "", "", fmt.Errorf("unsupported shell %q — add this to your rc file manually:\n%s", shell, zshBashWrapper)
 	}
 }
