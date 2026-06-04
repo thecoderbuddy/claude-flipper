@@ -48,7 +48,7 @@ Five steps every time you switch. Easy to end up in the wrong account without no
 
 **With Claude Flipper:**
 ```
-flipper swap
+flipper swap && claude
 ```
 One command. Instant. Always know which account is active.
 
@@ -57,11 +57,14 @@ One command. Instant. Always know which account is active.
 ## Installation
 
 ### macOS
+
 ```bash
 brew install thecoderbuddy/tap/claude-flipper
+flipper setup
+source ~/.zshrc
 ```
 
-That's it — no additional tools required.
+`flipper setup` adds a shell wrapper that injects your active account's token every time you run `claude`. This is required for account switching to work.
 
 **To upgrade:**
 ```bash
@@ -73,6 +76,8 @@ brew upgrade thecoderbuddy/tap/claude-flipper
 ### Linux
 ```bash
 curl -fsSL https://raw.githubusercontent.com/thecoderbuddy/claude-flipper/main/install.sh | bash
+flipper setup
+source ~/.bashrc
 ```
 
 Supports x86_64 and arm64. Installs to `/usr/local/bin/`.
@@ -133,12 +138,12 @@ SLOT    ACT  EMAIL                     ORG
 ### Step 4 — Flip between them
 
 ```bash
-flipper swap                       # rotate to the next account
-flipper swap 1                     # jump to slot 1 by number
-flipper swap personal@gmail.com    # jump by email
+flipper swap && claude        # rotate to next account and open Claude
+flipper swap 1 && claude      # jump to slot 1 by number
+flipper swap work@company.com # jump by email
 ```
 
-Make sure Claude Code is fully closed before running `flipper swap`. Then open it fresh — it will pick up the new credentials automatically.
+> **Note:** Always quit Claude Code (⌘Q or `/exit`) before swapping. The desktop app overwrites credentials while running.
 
 ---
 
@@ -151,6 +156,9 @@ Make sure Claude Code is fully closed before running `flipper swap`. Then open i
 | `flipper swap <slot\|email>` | Jump to a specific account by slot number or email |
 | `flipper list` | Show all saved accounts — active slot marked in the ACT column |
 | `flipper status` | Show which account is currently active |
+| `flipper setup` | Add the claude shell wrapper to your shell config (run once after install) |
+| `flipper token` | Print the active account's access token (refreshes if expiring) |
+| `flipper doctor` | Diagnose token expiry, keychain state, and config for all slots |
 | `flipper remove <slot\|email>` | Remove an account by slot number or email |
 | `flipper reset` | Remove all saved accounts and wipe all Claude Flipper data |
 
@@ -160,21 +168,41 @@ Make sure Claude Code is fully closed before running `flipper swap`. Then open i
 
 **Saving an account (`flipper add`):**
 - Reads your current Claude Code session from `~/.claude.json`
-- Reads your credentials from the macOS Keychain (macOS), credentials file (Linux), or Credential Manager (Windows)
+- Reads your credentials from the macOS Keychain (macOS) or credentials file (Linux)
 - Backs them up to `~/.claude-flipper/` under a numbered slot
 
 **Swapping accounts (`flipper swap`):**
 - Backs up the current account credentials and config
 - Loads the target account's credentials and config from the backup
-- Writes the target credentials back to the Keychain / credentials file
+- Refreshes the access token if it is about to expire
 - Updates `~/.claude.json` with the target account's session
+
+**Why the shell wrapper (`flipper setup`):**
+
+macOS Security.framework (used internally by Claude Code) cannot read Keychain entries written by third-party processes. Rather than fight the Keychain, flipper injects the token via the `ANTHROPIC_AUTH_TOKEN` environment variable — which the Anthropic SDK reads directly, bypassing the Keychain lookup entirely.
+
+The wrapper added by `flipper setup` does this automatically every time you run `claude`:
+```bash
+claude() { ANTHROPIC_AUTH_TOKEN="$(flipper token)" command claude "$@"; }
+```
 
 If anything fails mid-swap, it rolls back automatically — you're never left in a broken state.
 
-**Credentials storage:**
-- macOS → macOS Keychain (native, encrypted)
-- Linux → file-based, `0600` permissions
-- Windows → Windows Credential Manager
+---
+
+## Troubleshooting
+
+**"Not logged in" after swap**
+- Make sure you ran `flipper setup` and reloaded your shell (`source ~/.zshrc`)
+- Check `flipper doctor` to see token expiry and config state for all slots
+
+**Claude.app blocks the swap**
+- flipper blocks swaps while Claude.app (desktop) is running — it overwrites credentials
+- Quit Claude.app (⌘Q) first, then run `flipper swap`
+
+**Token expired**
+- `flipper swap` automatically refreshes tokens before writing them
+- If the refresh token is revoked (e.g. you ran `/logout`), re-add the account: `flipper add`
 
 ---
 
@@ -194,8 +222,9 @@ If anything fails mid-swap, it rolls back automatically — you're never left in
 **Claude Flipper does not collect, transmit, or share any data.**
 
 Everything stays on your machine:
-- Credentials are stored in your macOS Keychain (macOS), a local file with `0600` permissions (Linux), or Windows Credential Manager (Windows)
-- No telemetry, no analytics, no network requests
+- Credentials are stored locally with `0600` permissions
+- The only network request flipper makes is refreshing expired OAuth tokens directly with Anthropic's token endpoint
+- No telemetry, no analytics
 - Open source — you can verify exactly what the code does
 
 ---
