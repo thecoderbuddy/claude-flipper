@@ -30,4 +30,6 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(removeCmd)
 	rootCmd.AddCommand(resetCmd)
+	rootCmd.AddCommand(doctorCmd)
+	rootCmd.AddCommand(tokenCmd)
 }

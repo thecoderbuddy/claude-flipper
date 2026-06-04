@@ -2,9 +2,11 @@
 package switcher
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 
@@ -74,9 +76,25 @@ func AddCurrent() (AddResult, error) {
 	return AddResult{Slot: slot, Email: cfg.OAuthAccount.EmailAddress, IsNew: isNew}, nil
 }
 
+// claudeAppRunning returns true if the Claude.app desktop process is currently running.
+func claudeAppRunning() bool {
+	out, err := exec.Command("pgrep", "-f", "Claude.app/Contents/MacOS/Claude").Output()
+	if err != nil {
+		return false
+	}
+	return len(bytes.TrimSpace(out)) > 0
+}
+
 // SwitchTo switches the active Claude Code account to the one identified by slotOrEmail.
 // Pass "" to rotate to the next account in sequence.
 func SwitchTo(slotOrEmail string) (int, string, error) {
+	if claudeAppRunning() {
+		return 0, "", fmt.Errorf(
+			"Claude.app is running — quit it first (⌘Q), then run flipper swap.\n" +
+				"The desktop app overwrites Keychain changes made while it is open.",
+		)
+	}
+
 	l, err := lock.Acquire(paths.LockFile())
 	if err != nil {
 		return 0, "", fmt.Errorf("acquire lock: %w", err)
@@ -191,16 +209,50 @@ func SwitchTo(slotOrEmail string) (int, string, error) {
 	}
 
 	// Update the backup for the previous account in case credentials/config changed since last add.
+	// Only write config snapshot if it has a valid email — an empty oauthAccount means ~/.claude.json
+	// was corrupted (e.g. Claude.app overwrote it while running) and we must not save that garbage.
 	if currentSlot != 0 && currentEmail != "" {
 		if liveCredsSnapshot != nil {
 			_ = store.WriteBackup(currentSlot, currentEmail, liveCredsSnapshot)
 		}
-		if liveConfigSnapshot != nil {
+		if liveConfigSnapshot != nil && liveConfigSnapshot.OAuthAccount.EmailAddress != "" {
 			_ = writeConfigBackup(currentSlot, *liveConfigSnapshot)
 		}
 	}
 
 	return targetSlot, targetRec.Email, nil
+}
+
+// GetActiveToken returns the access token for the currently active flipper account,
+// refreshing it if it is about to expire. It reads only from the backup store —
+// it does NOT touch the live Keychain entry.
+func GetActiveToken() (string, error) {
+	seq, err := accounts.Load()
+	if err != nil {
+		return "", fmt.Errorf("load sequence: %w", err)
+	}
+	slot, rec, ok := accounts.ActiveAccount(seq)
+	if !ok {
+		return "", fmt.Errorf("no active account; run 'flipper add' first")
+	}
+
+	store := credentials.New()
+	creds, err := store.ReadBackup(slot, rec.Email)
+	if err != nil {
+		return "", fmt.Errorf("read backup for slot %d: %w", slot, err)
+	}
+
+	refreshed, rerr := tryRefreshCredentials(creds)
+	if rerr == nil {
+		if refreshed != creds {
+			// Persist refreshed token so future calls start fresh too.
+			_ = store.WriteBackup(slot, rec.Email, refreshed)
+		}
+		creds = refreshed
+	}
+	// If refresh fails (no network, revoked token) fall back to stored token.
+
+	return creds.ClaudeAiOauth.AccessToken, nil
 }
 
 // ReadLiveAccount is the exported form — used by the status command to show what
