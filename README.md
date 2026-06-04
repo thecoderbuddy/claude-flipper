@@ -110,27 +110,45 @@ This captures the session and saves it as slot 1.
 
 ### Step 2 — Save your second account
 
-Open Claude Code, log out, then log in with your second account:
+You need to log out of the first account and log in with your second. Here's the exact sequence:
 
+**1. Open Claude Code:**
 ```bash
 claude
 ```
 
-Inside Claude Code:
-1. Run `/logout` — this logs out your current account
-2. Run `claude` again to reopen
-3. Run `/login` — this opens the browser, sign in with your second account and complete the flow
-4. Run `/exit` once logged in
+**2. Inside Claude Code, log out:**
+```
+/logout
+```
+This clears the current session. Claude Code will confirm you've been logged out.
 
-Then run:
+**3. Exit and reopen Claude Code:**
+```bash
+/exit
+claude
+```
 
+**4. Inside Claude Code, trigger a fresh login:**
+```
+/login
+```
+This opens your browser. **Important:** make sure you sign in with your _second_ account in the browser — not the first one. If your browser auto-fills the wrong account, sign out of it in the browser first, then sign in with the correct account.
+
+**5. Once logged in, exit Claude Code:**
+```
+/exit
+```
+
+**6. Save the second account:**
 ```bash
 flipper add
 ```
 
 This saves the second session as slot 2.
 
-> **Why `/login` after `/logout`?** After `/logout`, Claude Code auto-picks the last used account on next open. Running `/login` forces a fresh login prompt so you can choose a different account.
+> **Why `/login` after `/logout`?**
+> After `/logout`, if you just reopen `claude` without running `/login`, Claude Code silently picks the last used account from its cache — you end up back on account 1 without realising it. Running `/login` forces a fresh browser authentication so you can explicitly choose which account to log in with.
 
 ### Step 3 — Confirm both accounts are saved
 
